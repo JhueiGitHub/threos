@@ -1,30 +1,63 @@
 // app/api/system/initialize/route.ts
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs";
-import { initializeOrionOS } from "@/lib/initial-setup";
+import { currentProfile } from "@/lib/current-profile";
+import { db } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
-    const user = await currentUser();
-    if (!user) {
+    const profile = await currentProfile();
+
+    if (!profile) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { name, imageUrl, constellation, wallpaper } = await req.json();
+    const {
+      name,
+      imageUrl,
+      constellation = "Default Workspace",
+    } = await req.json();
 
-    const system = await initializeOrionOS({
-      user,
-      customization: {
-        name,
-        imageUrl,
-        constellationName: constellation,
-        wallpaper,
+    // Create Desktop (Singleton)
+    const desktop = await db.desktop.create({
+      data: {
+        profileId: profile.id,
+        wallpaper: "/wallpapers/default-black.jpg",
+        dockPosition: "bottom",
+        dockAutoHide: true,
+        menuBarAutoHide: false,
       },
     });
 
-    return NextResponse.json(system);
+    // Create Default Constellation
+    const defaultConstellation = await db.constellation.create({
+      data: {
+        name: constellation,
+        profileId: profile.id,
+        description: "Default workspace",
+      },
+    });
+
+    // Update profile with active constellation
+    await db.profile.update({
+      where: { id: profile.id },
+      data: { activeConstellation: defaultConstellation.id },
+    });
+
+    // Initialize Drive
+    const drive = await db.drive.create({
+      data: {
+        profileId: profile.id,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      desktop: desktop.id,
+      constellation: defaultConstellation.id,
+      drive: drive.id,
+    });
   } catch (error) {
-    console.error("[SYSTEM_INITIALIZATION_ERROR]", error);
+    console.log("[SYSTEM_INITIALIZE]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

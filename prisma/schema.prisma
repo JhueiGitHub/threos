@@ -147,8 +147,7 @@ model InstalledApp {
 }
 
 model AppState {
-  id String @id @default(uuid())
-
+  id              String        @id @default(uuid())
   appId           String
   app             App           @relation(fields: [appId], references: [id])
   profileId       String
@@ -158,15 +157,15 @@ model AppState {
   installedAppId  String
   installedApp    InstalledApp  @relation(fields: [installedAppId], references: [id])
 
-  isOpen       Boolean @default(false)
-  isMinimized  Boolean @default(false)
-  isMaximized  Boolean @default(false)
-  position     Json
-  size         Json
-  contentState Json?
+  isOpen          Boolean       @default(false)
+  isMinimized     Boolean       @default(false)
+  isMaximized     Boolean       @default(false)
+  position        Json          @default("{\"x\":100,\"y\":100}")
+  size            Json          @default("{\"width\":800,\"height\":600}")
+  contentState    Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@unique([appId, profileId, constellationId])
   @@index([appId, profileId, constellationId])
