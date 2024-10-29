@@ -8,387 +8,114 @@ datasource db {
 }
 
 // Core User Profile
-model Profile {
-  id       String @id @default(uuid())
-  userId   String @unique
-  name     String
-  imageUrl String
-  email    String
+// Updated schema.prisma
+model User {
+  id      String  @id @default(uuid())
+  clerkId String  @unique
+  email   String  @unique
+  name    String?
 
-  // Core System Relations
-  desktop             Desktop? // One desktop per profile
-  drive               Drive? // One drive per profile
-  activeConstellation String? // Current constellation ID
-
-  // OrionOS Collections
+  streams        Stream[]
   constellations Constellation[]
-  installedApps  InstalledApp[]
-  appStates      AppState[]
-  flowConfigs    FlowConfig[]
-
-  // Flow App Relations
-  streams       Stream[]
-  streamMembers StreamMember[]
-
-  // Discord App Relations
-  servers  Server[]
-  members  Member[]
-  channels Channel[]
+  driveItems     DriveItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// OS System Models
-model Desktop {
-  id        String  @id @default(uuid())
-  profileId String  @unique
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  wallpaper       String  @default("default.jpg")
-  dockPosition    String  @default("bottom")
-  dockAutoHide    Boolean @default(true)
-  menuBarAutoHide Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([profileId])
-}
-
-model Drive {
-  id String @id @default(uuid())
-  profileId String @unique
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  
-  totalStorage BigInt @default(0) // Changed from Int to BigInt
-  storageLimit BigInt @default(10737418240) // Changed from Int to BigInt
-  
-  assets Asset[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([profileId])
-}
-
-model Asset {
-  id   String @id @default(uuid())
-  name String
-  type String
-  url  String
-  size Int
-
-  driveId String
-  drive   Drive  @relation(fields: [driveId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([driveId])
-}
-
-model Constellation {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-
-  profileId String
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  appStates    AppState[]
-  dockConfig   DockConfig?
-  activeFlowId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([profileId])
-}
-
-model App {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  displayName String
-  description String?
-  iconUrl     String
-
-  isSystem Boolean @default(false)
-  isClone  Boolean @default(false)
-
-  defaultWindowConfig Json
-  supportedFeatures   String[]
-
-  installations InstalledApp[]
-  states        AppState[]
-  flowConfigs   FlowConfig[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model InstalledApp {
-  id String @id @default(uuid())
-
-  appId     String
-  app       App     @relation(fields: [appId], references: [id], onDelete: Cascade)
-  profileId String
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  settings   Json?
-  states     AppState[]
-  flowConfig FlowConfig?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([appId, profileId])
-  @@index([appId, profileId])
-}
-
-model AppState {
-  id              String        @id @default(uuid())
-  appId           String
-  app             App           @relation(fields: [appId], references: [id])
-  profileId       String
-  profile         Profile       @relation(fields: [profileId], references: [id])
-  constellationId String
-  constellation   Constellation @relation(fields: [constellationId], references: [id])
-  installedAppId  String
-  installedApp    InstalledApp  @relation(fields: [installedAppId], references: [id])
-
-  isOpen          Boolean       @default(false)
-  isMinimized     Boolean       @default(false)
-  isMaximized     Boolean       @default(false)
-  position        Json          @default("{\"x\":100,\"y\":100}")
-  size            Json          @default("{\"width\":800,\"height\":600}")
-  contentState    Json?
-
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  @@unique([appId, profileId, constellationId])
-  @@index([appId, profileId, constellationId])
-}
-
-// schema.prisma
-model DockConfig {
-  id String @id @default(uuid())
-  constellationId String @unique
-  constellation Constellation @relation(fields: [constellationId], references: [id], onDelete: Cascade)
-  
-  items Json // Just the items array
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([constellationId])
-}
-
-model FlowConfig {
-  id String @id @default(uuid())
-
-  appId          String
-  app            App          @relation(fields: [appId], references: [id])
-  profileId      String
-  profile        Profile      @relation(fields: [profileId], references: [id])
-  installedAppId String       @unique
-  installedApp   InstalledApp @relation(fields: [installedAppId], references: [id])
-
-  styleTokens Json
-  overrides   Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([appId, profileId])
-}
-
-// Flow App Models
 model Stream {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-  imageUrl    String?
-
-  profileId String
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  members StreamMember[]
-  flows   Flow[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([profileId])
-}
-
-model StreamMember {
   id   String     @id @default(uuid())
-  role StreamRole @default(VIEWER)
+  name String
+  type StreamType
 
-  profileId String
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  flows Flow[]
 
-  streamId String
-  stream   Stream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([profileId])
-  @@index([streamId])
 }
 
-enum StreamRole {
-  ADMIN
-  EDITOR
-  VIEWER
+enum StreamType {
+  SYSTEM // For core OS flows
+  APPLICATION // For app-specific flows
+  USER // For user-created flows
 }
 
 model Flow {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
+  id      String   @id @default(uuid())
+  name    String
+  type    FlowType
+  content Json
 
   streamId String
-  stream   Stream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  stream   Stream @relation(fields: [streamId], references: [id])
 
-  tokens       Json
-  parentFlowId String?
-  isSystem     Boolean @default(false)
+  // For referencing other flows
+  useFlowId String?
+  useFlow   Flow?   @relation("FlowReference", fields: [useFlowId], references: [id])
+  usedBy    Flow[]  @relation("FlowReference")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([streamId])
-}
-
-// Discord App Models
-model Server {
-  id         String @id @default(uuid())
-  name       String
-  imageUrl   String
-  inviteCode String @unique
-
-  profileId String
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  members  Member[]
-  channels Channel[]
+  // Which constellation configurations use this flow
+  activeIn ConstellationConfig[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([profileId])
 }
 
-enum MemberRole {
-  ADMIN
-  MODERATOR
-  GUEST
+enum FlowType {
+  CORE // Base design system
+  APP // App-specific configuration
+  CUSTOM // User-created variation
 }
 
-model Member {
-  id   String     @id @default(uuid())
-  role MemberRole @default(GUEST)
+model Constellation {
+  id       String  @id @default(uuid())
+  name     String
+  isActive Boolean @default(false)
 
-  profileId String
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  serverId String
-  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  messages       Message[]
-  directMessages DirectMessage[]
-
-  conversationsInitiated Conversation[] @relation("MemberOne")
-  conversationsReceived  Conversation[] @relation("MemberTwo")
+  // Configuration for each app in this environment
+  configs ConstellationConfig[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([profileId])
-  @@index([serverId])
 }
 
-enum ChannelType {
-  TEXT
-  AUDIO
-  VIDEO
-}
+model ConstellationConfig {
+  id    String @id @default(uuid())
+  appId String // e.g. "orion", "stellar", "flow"
 
-model Channel {
-  id   String      @id @default(uuid())
-  name String
-  type ChannelType @default(TEXT)
+  constellationId String
+  constellation   Constellation @relation(fields: [constellationId], references: [id])
 
-  profileId String
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  serverId String
-  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  messages Message[]
+  flowId String
+  flow   Flow   @relation(fields: [flowId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([profileId])
-  @@index([serverId])
 }
 
-model Message {
-  id      String  @id @default(uuid())
-  content String
-  fileUrl String?
+model DriveItem {
+  id       String  @id @default(uuid())
+  name     String
+  type     String // "FOLDER" or "FILE"
+  path     String
+  mimeType String?
 
-  memberId String
-  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  parentId String?
+  parent   DriveItem?  @relation("DriveHierarchy", fields: [parentId], references: [id])
+  children DriveItem[] @relation("DriveHierarchy")
 
-  channelId String
-  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  deleted Boolean @default(false)
+  // For tracking which flows reference this media
+  usedInFlows String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([channelId])
-  @@index([memberId])
-}
-
-model Conversation {
-  id String @id @default(uuid())
-
-  memberOneId String
-  memberOne   Member @relation("MemberOne", fields: [memberOneId], references: [id], onDelete: Cascade)
-
-  memberTwoId String
-  memberTwo   Member @relation("MemberTwo", fields: [memberTwoId], references: [id], onDelete: Cascade)
-
-  directMessages DirectMessage[]
-
-  @@unique([memberOneId, memberTwoId])
-  @@index([memberTwoId])
-}
-
-model DirectMessage {
-  id      String  @id @default(uuid())
-  content String
-  fileUrl String?
-
-  memberId String
-  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  deleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([memberId])
-  @@index([conversationId])
 }

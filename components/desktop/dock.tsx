@@ -1,65 +1,143 @@
 // components/desktop/dock.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import type { Constellation } from "@prisma/client";
+import {
+  AnimatePresence,
+  MotionValue,
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from "framer-motion";
+import Link from "next/link";
+import { useRef, useState } from "react";
 
-interface DockProps {
-  position?: "bottom" | "left" | "right";
-  autoHide?: boolean;
-  constellation: Constellation;
-  className?: string;
-}
+const links = [
+  {
+    title: "Flow",
+    image: "/icns/finder.png",
+    href: "#",
+  },
+  {
+    title: "Stellar",
+    image: "/icns/settings.png",
+    href: "#",
+  },
+  {
+    title: "Zeru",
+    image: "/icns/mila.png",
+    href: "#",
+  },
+  {
+    title: "Mila",
+    image: "/icns/zeru.png",
+    href: "#",
+  },
+  {
+    title: "Discord",
+    image: "/icns/figma.png",
+    href: "#",
+  },
+  {
+    title: "Apps",
+    image: "/icns/desktop.png",
+    href: "#",
+  },
+];
 
-export function Dock({
-  position = "bottom",
-  autoHide = true,
-  constellation,
-  className,
-}: DockProps) {
-  const [isVisible, setIsVisible] = useState(true);
-  const [hoveredAppId, setHoveredAppId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!autoHide) return;
-
-    let timeoutId: NodeJS.Timeout;
-    const handleMouseMove = (e: MouseEvent) => {
-      const threshold = 20;
-      const isNearDock =
-        position === "bottom"
-          ? e.clientY >= window.innerHeight - threshold
-          : position === "left"
-          ? e.clientX <= threshold
-          : e.clientX >= window.innerWidth - threshold;
-
-      if (isNearDock) {
-        setIsVisible(true);
-        clearTimeout(timeoutId);
-      } else {
-        timeoutId = setTimeout(() => setIsVisible(false), 1000);
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [autoHide, position]);
+export const Dock = () => {
+  let mouseX = useMotionValue(Infinity);
 
   return (
     <motion.div
-      animate={{ opacity: isVisible ? 1 : 0 }}
+      onMouseMove={(e) => mouseX.set(e.pageX)}
+      onMouseLeave={() => mouseX.set(Infinity)}
       className={cn(
-        "fixed p-2 backdrop-blur-xl bg-background/20",
-        position === "bottom" && "bottom-0 left-1/2 -translate-x-1/2",
-        position === "left" && "left-0 top-1/2 -translate-y-1/2",
-        position === "right" && "right-0 top-1/2 -translate-y-1/2",
-        "flex items-center gap-1 rounded-xl border border-border/50",
-        className
+        "fixed bottom-3 left-1/2 -translate-x-1/2",
+        "mx-auto hidden md:flex px-1 py-0.5",
+        "bg-black/20 backdrop-blur-2xl",
+        "border border-white/[0.08]"
       )}
+      style={{
+        borderRadius: "19px",
+        WebkitMaskImage: "-webkit-radial-gradient(white, black)", // iOS corner smoothing
+      }}
     >
-      {/* Dock items implementation */}
+      <div className="flex gap-[3px] items-center">
+        {links.map((link) => (
+          <IconContainer mouseX={mouseX} key={link.title} {...link} />
+        ))}
+      </div>
     </motion.div>
+  );
+};
+
+function IconContainer({
+  mouseX,
+  title,
+  image,
+  href,
+}: {
+  mouseX: MotionValue;
+  title: string;
+  image: string;
+  href: string;
+}) {
+  let ref = useRef<HTMLDivElement>(null);
+
+  let distance = useTransform(mouseX, (val) => {
+    let bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
+    return val - bounds.x - bounds.width / 2;
+  });
+
+  // Adjusted for 68px base size with scaling
+  let widthTransform = useTransform(distance, [-150, 0, 150], [68, 82, 68]);
+  let heightTransform = useTransform(distance, [-150, 0, 150], [68, 82, 68]);
+
+  let width = useSpring(widthTransform, {
+    mass: 0.1,
+    stiffness: 150,
+    damping: 12,
+  });
+
+  let height = useSpring(heightTransform, {
+    mass: 0.1,
+    stiffness: 150,
+    damping: 12,
+  });
+
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Link href={href}>
+      <div className="relative">
+        <AnimatePresence>
+          {hovered && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, x: "-50%" }}
+              animate={{ opacity: 1, y: 0, x: "-50%" }}
+              exit={{ opacity: 0, y: 2, x: "-50%" }}
+              className="absolute left-1/2 -top-8 px-2 py-0.5 rounded-md bg-black/20 backdrop-blur-xl border border-white/[0.08] text-white text-xs whitespace-nowrap"
+            >
+              {title}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          ref={ref}
+          style={{ width, height }}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          className={cn(
+            "flex items-center justify-center",
+            "relative overflow-hidden"
+          )}
+        >
+          <img src={image} alt={title} className="w-full h-full object-cover" />
+        </motion.div>
+      </div>
+    </Link>
   );
 }

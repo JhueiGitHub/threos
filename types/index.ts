@@ -1,32 +1,34 @@
 // types/index.ts
-import type {
-  Profile,
-  Desktop,
-  Constellation,
-  AppState,
-  App,
-  InstalledApp,
-} from "@prisma/client";
-
-// Re-export Prisma types
-export type { Profile, Desktop, Constellation, AppState, App, InstalledApp };
-
-// Basic window types
-export interface Position {
-  x: number;
-  y: number;
+interface FlowContent {
+  wallpaper?: string | null;
+  dockIcons: Array<{
+    id: string;
+    name: string;
+    image: string;
+  }>;
 }
 
-export interface Size {
-  width: number;
-  height: number;
+interface ConstellationConfig {
+  id: string;
+  appId: string;
+  flow: {
+    id: string;
+    name: string;
+    type: "CORE" | "APP" | "CUSTOM";
+    content: FlowContent;
+    useFlowId: string | null;
+    streamId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
 }
 
-export interface AppStateWithRelations extends AppState {
-  app: App;
-  installedApp: InstalledApp;
-}
-
-export interface ConstellationWithRelations extends Constellation {
-  appStates: AppStateWithRelations[];
+interface Constellation {
+  id: string;
+  name: string;
+  isActive: boolean;
+  userId: string;
+  configs: ConstellationConfig[];
+  createdAt: Date;
+  updatedAt: Date;
 }
